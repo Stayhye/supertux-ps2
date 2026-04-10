@@ -6,7 +6,7 @@ jobs:
   build-ps2:
     runs-on: ubuntu-latest
     container: 
-      image: ps2dev/ps2dev:latest
+      image: ps2dev/ps2dev:v1.0
       # This ensures the container runs as root to avoid permission issues in /__w/
       options: --user root
 
