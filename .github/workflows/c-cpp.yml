@@ -5,18 +5,18 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   build-ps2:
     runs-on: ubuntu-latest
+    # Changing "latest" to "v1.0" or a specific version tag
     container: 
-      image: ps2dev/ps2dev:v1.0
-      # This ensures the container runs as root to avoid permission issues in /__w/
+      image: ps2dev/ps2dev:v1.0 
       options: --user root
 
     steps:
-      - name: Install Build Essentials
+      - name: Install Dependencies
         run: |
           apk update
           apk add --no-cache git cmake make gcc g++ musl-dev
 
-      # This is the "Magic Fix" for GitHub Actions in Docker containers
+      # Essential to prevent the "Missing CMakeLists.txt" error in containers
       - name: Fix Git Workspace Permissions
         run: git config --global --add safe.directory /__w/supertux-ps2/supertux-ps2
 
@@ -25,25 +25,22 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Verify File Presence
-        run: |
-          echo "Checking for CMakeLists.txt..."
-          find . -maxdepth 2 -name "CMakeLists.txt"
-          ls -la
-
       - name: Configure CMake
         run: |
-          # We use -S . to point to the current directory where checkout happened
-          cmake -S . -B build \
-            -DCMAKE_TOOLCHAIN_FILE=$PS2DEV/ps2sdk/ps2dev.cmake \
-            -DPLATFORM=PS2 \
-            -DCMAKE_BUILD_TYPE=Release
+          # Note: If v1.0 is very old, you may need to use 'cmake .' 
+          # instead of the newer -S and -B flags
+          mkdir build && cd build
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=$PS2DEV/ps2sdk/ps2dev.cmake \
+                   -DPLATFORM=PS2 \
+                   -DCMAKE_BUILD_TYPE=Release
 
       - name: Compile
-        run: cmake --build build -j$(nproc)
+        run: |
+          cd build
+          make -j$(nproc)
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SuperTux-PS2-Build
+          name: SuperTux-PS2-v1.0
           path: build/*.elf
