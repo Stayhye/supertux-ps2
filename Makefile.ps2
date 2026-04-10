@@ -1,46 +1,43 @@
-EE_OBJS = src/bitmask.o src/badguy.o src/button.o src/collision.o src/configfile.o src/gameloop.o src/gameobjs.o src/globals.o src/high_scores.o src/intro.o src/leveleditor.o src/level.o src/lispreader.o src/menu.o src/mousecursor.o src/music_manager.o src/musicref.o src/particlesystem.o src/physic.o src/player.o src/ps2_specific.o src/resources.o src/scene.o src/supertux.o src/screen.o src/setup.o src/sound.o src/special.o src/sprite_manager.o src/sprite.o src/text.o src/texture.o src/tile.o src/timer.o src/title.o src/type.o src/worldmap.o src/world.o
+# 1. Toolchain Definitions (The "Engine")
+EE_BIN_PREFIX = ee-
+EE_CC  = $(EE_BIN_PREFIX)gcc
+EE_CXX = $(EE_BIN_PREFIX)g++
+EE_AR  = $(EE_BIN_PREFIX)ar
+EE_LD  = $(EE_BIN_PREFIX)gcc
+
+# 2. Your Project Files (The "Parts")
+# Keep this exactly as you had it!
+EE_OBJS = src/bitmask.o src/badguy.o src/button.o src/collision.o src/configfile.o \
+          src/gameloop.o src/gameobjs.o src/globals.o src/high_scores.o src/intro.o \
+          src/leveleditor.o src/level.o src/lispreader.o src/menu.o src/mousecursor.o \
+          src/music_manager.o src/musicref.o src/particlesystem.o src/physic.o \
+          src/player.o src/ps2_specific.o src/resources.o src/scene.o src/supertux.o \
+          src/screen.o src/setup.o src/sound.o src/special.o src/sprite_manager.o \
+          src/sprite.o src/text.o src/texture.o src/tile.o src/timer.o src/title.o \
+          src/type.o src/worldmap.o src/world.o
+
+# The name of the final game file
 EE_BIN = supertux.elf
 
-EE_INCS = -Isrc -I$(PS2SDK)/ports/include
-EE_CXXFLAGS := -DNOOPENGL
-EE_LDFLAGS = -L$(PS2SDK)/ports/lib -L$(GSKIT)/lib
-EE_LIBS = -lSDL_image -lsdlmixer -lsdl -logg -lvorbis -lcdvd -lmc -lc -lstdc++
+# 3. Paths and Flags
+EE_INCS = -Isrc -I$(PS2SDK)/ports/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include
+EE_CXXFLAGS = -DNOOPENGL -D_EE -O2 -G0 -Wall $(EE_INCS)
+EE_LDFLAGS = -L$(PS2SDK)/ports/lib -L$(GSKIT)/lib -L$(PS2SDK)/ee/lib
+EE_LIBS = -lSDL_image -lsdlmixer -lsdl -logg -lvorbis -lcdvd -lmc -lc -lstdc++ -lpatches -ldebug
 
-EE_IRX_FILES=\
-	usbd.irx \
-	usbhdfsd.irx \
-	cdfs.irx \
-
-EE_IRX_SRCS = $(addsuffix _irx.c, $(basename $(EE_IRX_FILES)))
-EE_IRX_OBJS = $(addsuffix _irx.o, $(basename $(EE_IRX_FILES)))
-EE_OBJS += $(EE_IRX_OBJS)
-
-# Where to find the IRX files
-vpath %.irx $(PS2SDK)/iop/irx/
-
-# Rule to generate them
-%_irx.o: %.irx
-	bin2c $< $*_irx.c $*_irx
-	$(EE_CC) -c $*_irx.c -o $*_irx.o
-
-# This is for the sbv patch
-SBVLITE = $(PS2SDK)/sbv
-EE_INCS += -I$(SBVLITE)/include
-EE_LDFLAGS += -L$(SBVLITE)/lib
-EE_LIBS += -lpatches
-
-
+# 4. The Build Rules (The "Instructions")
 all: $(EE_BIN)
 
+# This rule tells Make to use the C++ compiler (EE_CXX) for .cpp files
+%.o: %.cpp
+	$(EE_CXX) $(EE_CXXFLAGS) -c $< -o $@
+
+$(EE_BIN): $(EE_OBJS)
+	$(EE_CXX) $(EE_CXXFLAGS) $(EE_LDFLAGS) -o $(EE_BIN) $(EE_OBJS) $(EE_LIBS)
+
 clean:
-	rm -f $(EE_OBJS) $(EE_BIN) $(EE_IRX_SRCS)
+	rm -f $(EE_OBJS) $(EE_BIN)
 
-run:
-	ps2client execee host:$(EE_BIN)
-
-reset:
-	ps2client reset
-
+# Include the standard PS2 SDK Makefile preferences
 include $(PS2SDK)/samples/Makefile.pref
 include $(PS2SDK)/samples/Makefile.eeglobal
-
