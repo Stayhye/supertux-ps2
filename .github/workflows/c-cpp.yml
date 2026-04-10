@@ -1,23 +1,47 @@
-name: C/C++ CI
+name: Build SuperTux-PS2
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
-  build:
-
+  build-ps2:
     runs-on: ubuntu-latest
+    container: ps2dev/ps2dev:latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install build dependencies
+        run: |
+          apk add --no-cache cmake make gcc g++ git
+
+      - name: Prepare Build Directory
+        run: mkdir build
+
+      - name: Configure CMake
+        # We point CMake to the PS2 toolchain file provided by the SDK
+        run: |
+          cd build
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=$PS2DEV/ps2sdk/ps2dev.cmake \
+                   -DPLATFORM=PS2 \
+                   -DCMAKE_BUILD_TYPE=Release
+
+      - name: Compile Project
+        run: |
+          cd build
+          make -j$(nproc)
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SuperTux-PS2-ELF
+          path: |
+            build/*.elf
+            build/*.irx
