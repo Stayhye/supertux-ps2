@@ -5,42 +5,50 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   build-ps2:
     runs-on: ubuntu-latest
-    # Changing "latest" to "v1.0" or a specific version tag
     container: 
-      image: ps2dev/ps2dev:v1.0 
+      image: ps2dev/ps2dev:v1.0
       options: --user root
 
     steps:
-      - name: Install Dependencies
+      - name: Install Build Essentials
         run: |
           apk update
           apk add --no-cache git cmake make gcc g++ musl-dev
 
-      # Essential to prevent the "Missing CMakeLists.txt" error in containers
-      - name: Fix Git Workspace Permissions
+      # Force Git to trust the workspace path
+      - name: Fix Git Permissions
         run: git config --global --add safe.directory /__w/supertux-ps2/supertux-ps2
 
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          # Force the checkout into the specific directory CMake is looking at
+          path: 'supertux-ps2'
 
-      - name: Configure CMake
+      - name: Verify and Build
         run: |
-          # Note: If v1.0 is very old, you may need to use 'cmake .' 
-          # instead of the newer -S and -B flags
-          mkdir build && cd build
+          # Move into the folder where the code actually is
+          cd /__w/supertux-ps2/supertux-ps2/supertux-ps2
+          
+          # If the folder doesn't exist, we fallback to the parent
+          if [ ! -f "CMakeLists.txt" ]; then cd ..; fi
+          
+          echo "Current directory: $(pwd)"
+          ls -la
+          
+          # Create build directory and run CMake
+          mkdir -p build && cd build
           cmake .. -DCMAKE_TOOLCHAIN_FILE=$PS2DEV/ps2sdk/ps2dev.cmake \
                    -DPLATFORM=PS2 \
                    -DCMAKE_BUILD_TYPE=Release
-
-      - name: Compile
-        run: |
-          cd build
+          
           make -j$(nproc)
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SuperTux-PS2-v1.0
-          path: build/*.elf
+          name: SuperTux-PS2-ELF
+          path: |
+            **/build/*.elf
+            **/build/*.irx
