@@ -5,31 +5,35 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   build-ps2:
     runs-on: ubuntu-latest
-    container: ps2dev/ps2dev:latest
+    container: 
+      image: ps2dev/ps2dev:latest
+      # This ensures the container runs as root to avoid permission issues in /__w/
+      options: --user root
 
     steps:
-      - name: Install Git and Build Tools
+      - name: Install Build Essentials
         run: |
           apk update
           apk add --no-cache git cmake make gcc g++ musl-dev
+
+      # This is the "Magic Fix" for GitHub Actions in Docker containers
+      - name: Fix Git Workspace Permissions
+        run: git config --global --add safe.directory /__w/supertux-ps2/supertux-ps2
 
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          # We force it to check out into the current directory explicitly
-          path: '.'
 
-      - name: Diagnostic - Where are the files?
+      - name: Verify File Presence
         run: |
-          echo "Current Directory: $(pwd)"
-          echo "Listing all files in workspace:"
-          ls -R
+          echo "Checking for CMakeLists.txt..."
+          find . -maxdepth 2 -name "CMakeLists.txt"
+          ls -la
 
       - name: Configure CMake
         run: |
-          # If the Diagnostic step above shows CMakeLists.txt inside a folder,
-          # change the "." below to that folder name.
+          # We use -S . to point to the current directory where checkout happened
           cmake -S . -B build \
             -DCMAKE_TOOLCHAIN_FILE=$PS2DEV/ps2sdk/ps2dev.cmake \
             -DPLATFORM=PS2 \
@@ -41,5 +45,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SuperTux-PS2
+          name: SuperTux-PS2-Build
           path: build/*.elf
