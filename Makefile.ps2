@@ -20,7 +20,7 @@ EE_OBJS = src/bitmask.o src/badguy.o src/button.o src/collision.o src/configfile
 EE_BIN = supertux.elf
 
 # 3. Paths and Flags
-EE_INCS = -Isrc -I$(PS2SDK)/ports/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include
+EE_INCS = -I. -Isrc -I$(PS2SDK)/ports/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include
 EE_CXXFLAGS = -DNOOPENGL -D_EE -O2 -G0 -Wall $(EE_INCS)
 EE_LDFLAGS = -L$(PS2SDK)/ports/lib -L$(GSKIT)/lib -L$(PS2SDK)/ee/lib
 EE_LIBS = -lSDL_image -lsdlmixer -lsdl -logg -lvorbis -lcdvd -lmc -lc -lstdc++ -lpatches -ldebug
