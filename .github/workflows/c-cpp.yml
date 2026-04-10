@@ -8,28 +8,33 @@ jobs:
     container: ps2dev/ps2dev:latest
 
     steps:
-      # 1. Manually install Git before the checkout action tries to use it
       - name: Install Git and Build Tools
         run: |
           apk update
           apk add --no-cache git cmake make gcc g++ musl-dev
 
-      # 2. Now checkout will work with submodules
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Configure and Build
+      - name: Configure CMake
+        # -S .  means "Source is the current directory"
+        # -B build means "Put build files in the build folder"
         run: |
-          mkdir build && cd build
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=$PS2DEV/ps2sdk/ps2dev.cmake \
-                   -DPLATFORM=PS2 \
-                   -DCMAKE_BUILD_TYPE=Release
-          make -j$(nproc)
+          cmake -S . -B build \
+            -DCMAKE_TOOLCHAIN_FILE=$PS2DEV/ps2sdk/ps2dev.cmake \
+            -DPLATFORM=PS2 \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Compile Project
+        run: |
+          cmake --build build -j$(nproc)
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SuperTux-PS2
-          path: build/*.elf
+          path: |
+            build/*.elf
+            build/*.irx
