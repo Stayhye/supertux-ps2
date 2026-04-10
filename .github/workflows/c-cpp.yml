@@ -17,29 +17,29 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          # We force it to check out into the current directory explicitly
+          path: '.'
 
-      - name: Debug - List Files
+      - name: Diagnostic - Where are the files?
         run: |
-          pwd
-          ls -F
+          echo "Current Directory: $(pwd)"
+          echo "Listing all files in workspace:"
+          ls -R
 
       - name: Configure CMake
-        # -S .  means "Source is the current directory"
-        # -B build means "Put build files in the build folder"
         run: |
+          # If the Diagnostic step above shows CMakeLists.txt inside a folder,
+          # change the "." below to that folder name.
           cmake -S . -B build \
             -DCMAKE_TOOLCHAIN_FILE=$PS2DEV/ps2sdk/ps2dev.cmake \
             -DPLATFORM=PS2 \
             -DCMAKE_BUILD_TYPE=Release
 
-      - name: Compile Project
-        run: |
-          cmake --build build -j$(nproc)
+      - name: Compile
+        run: cmake --build build -j$(nproc)
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SuperTux-PS2
-          path: |
-            build/*.elf
-            build/*.irx
+          path: build/*.elf
