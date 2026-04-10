@@ -18,6 +18,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Debug - List Files
+        run: |
+          pwd
+          ls -F
+
       - name: Configure CMake
         # -S .  means "Source is the current directory"
         # -B build means "Put build files in the build folder"
