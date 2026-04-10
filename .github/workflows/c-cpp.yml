@@ -10,12 +10,12 @@ jobs:
       options: --user root
 
     steps:
-      - name: Install Build Essentials
+      - name: Install Git and Toolchain Dependencies
         run: |
           apk update
-          apk add --no-cache git cmake make gcc g++ musl-dev
+          apk add --no-cache git make gcc g++ musl-dev
 
-      # Force Git to trust the workspace path
+      # Fixes the "dubious ownership" error in the container
       - name: Fix Git Permissions
         run: git config --global --add safe.directory /__w/supertux-ps2/supertux-ps2
 
@@ -23,32 +23,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          # Force the checkout into the specific directory CMake is looking at
-          path: 'supertux-ps2'
 
-      - name: Verify and Build
+      - name: Build with Makefile.ps2
         run: |
-          # Move into the folder where the code actually is
-          cd /__w/supertux-ps2/supertux-ps2/supertux-ps2
-          
-          # If the folder doesn't exist, we fallback to the parent
-          if [ ! -f "CMakeLists.txt" ]; then cd ..; fi
-          
-          echo "Current directory: $(pwd)"
-          ls -la
-          
-          # Create build directory and run CMake
-          mkdir -p build && cd build
-          cmake .. -DCMAKE_TOOLCHAIN_FILE=$PS2DEV/ps2sdk/ps2dev.cmake \
-                   -DPLATFORM=PS2 \
-                   -DCMAKE_BUILD_TYPE=Release
-          
-          make -j$(nproc)
+          # If Makefile.ps2 is in the root, we run it directly.
+          # We use -f to specify the filename since it's not named 'Makefile'.
+          make -f Makefile.ps2 -j$(nproc)
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: SuperTux-PS2-ELF
+          name: SuperTux-PS2-Binary
           path: |
-            **/build/*.elf
-            **/build/*.irx
+            *.elf
+            *.irx
+            bin/*.elf
